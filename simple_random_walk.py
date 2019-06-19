@@ -1,3 +1,6 @@
+import random
+import networkx as nx
+
 g= nx.grid_graph([5,5])
 state = random.choice(list(g.nodes()))
 states = []
