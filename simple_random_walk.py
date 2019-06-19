@@ -1,5 +1,6 @@
 import random
 import networkx as nx
+import matplotlib.pyplot as plt
 
 g= nx.grid_graph([5,5])
 state = random.choice(list(g.nodes()))
