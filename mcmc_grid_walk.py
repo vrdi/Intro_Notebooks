@@ -44,5 +44,5 @@ for i in range(10000):
     
 plt.figure()
 nx.draw(g,pos = {x:x for x in g.nodes()}, node_color = [visits[x] for x in g.nodes()],edge_color = [edge_colors[x] for x in g.edges()],
-        width =3)
+        width =3, cmap ="jet")
 plt.show()
