@@ -7,7 +7,7 @@
 # 
 # GeoPandas and pandas are typically imported using the aliases `gpd` and `pd`. GeoPandas exposes many (but not all) pandas methods, so import pandas as well. Import pyplot using the alias `plt`.
 
-# In[6]:
+# In[2]:
 
 
 import geopandas as gpd
@@ -232,3 +232,65 @@ plt.show()
 # The NHGIS `GISJOIN` field contains FIPS codes but follows a format unique to NHGIS, so *cannot* be used (without further manipulation) to join NHGIS-sourced shapefiles to Census-sourced attribute data, or Census-sourced shapefiles to NGHIS-sourced attribute data. If you want to combine data from mixed sources, you will have to use string manipulation to coerce the field from one format to the other.
 # 
 # You must pay attention to the **vintage** (data year) of Census products. Census geographies go through an overhaul every several years, but there are also small year-to-year changes, which include a combination of legal entity changes (e.g. a county's boundary shifting in relation to a neighboring county) as well as accuracy improvements in the data (which means the geometries will change, even though there is no "real world" change to the adminstrative boundary of the entity). Attibute data should always be joined to geospatial data of the same vintage. If you are working with ACS 2017 data, you should download TIGER/Line or Cartographic Boundary files for 2017. If you are working with 2010 Decennial Census data, you should download TIGER/Line or Cartographic Boundary files for 2010.
+# 
+# ## Spatial Joins
+# 
+# So far, we have been doing what GIS analysts call an **attribute join**, which just means a join on nonspatial key fields. (It's still an attribute join if one of the input DataFrames is spatial.) A **spatial join** matches rows based on a *spatial relationship* between the two data frames. Since the join is based on a spatial relationship, both data frames must be GeoDataFrames.
+# 
+# A spatial join does not in any way alter the input geometries. That is, while you might be familiar with an intersection operation that creates a new geometry based on the overlapping region of two input geometries, a spatial join merely asks whether the two geometries intersect (that is, share any points in common, including boundary points). If it does, then the attributes (nonspatial columns) of the right GeoDataFrame are added to the left GeoDataFrame. The geometries of the left GeoDataFrame are not altered in any way.
+# 
+# So far, we have also been restricting ourselves to one-to-one joins. That is, each row had at most one matching row in the other table. One-to-many and many-to-many joins are also possible. For example, each state has multiple counties. If you have a county DataFrame and a state DataFrame, you might want to add information about each state to the county DataFrame. The data for each state would be repeated for every county in that state. While one-to-many and many-to-many joins are possible and even common with attribute data, they are especially likely with spatial joins, for example because point phenomena, such as UFO sightings, are likely to happen many times within geographic areas, such as states (and especially in New Mexico).
+# 
+# In the [VRDI Introduction to GIS](https://github.com/gerrymandr/vrdi-intro-gis) you used Boston polling places (point) and precincts (polygons) to analyze polling place access. We will do something similar using GeoPandas. Start by loading the polling place coordinates and constructing a GeoDataFrame. We assing [EPSG:4326](http://epsg.io/4326), the coordinate system used for GPS lat-long coordinates, and very commonly the correct one to use if you are given lat-long data with no further information.
+
+# In[20]:
+
+
+polling = pd.read_csv("https://raw.githubusercontent.com/gerrymandr/vrdi-intro-gis/master/5.%20Point-Data/Polling_Locations_2017.csv")
+geo_polling = gpd.GeoDataFrame(polling, crs = {"init": "epsg:4326"}, geometry = gpd.points_from_xy(polling.LONG, polling.LAT))
+geo_polling.head()
+
+
+# Now load the Boston precincts. Check the CRS of the GeoDataFrame.
+
+# In[31]:
+
+
+geo_precincts = gpd.read_file("https://github.com/gerrymandr/vrdi-intro-gis/raw/master/5.%20Point-Data/boston_precincts.zip")
+print(geo_precincts.crs)
+
+
+# The CRSes of these two files are not the same. In order to check do the spatial join, the input GeoDataFrames *must* be in the same CRS.
+# 
+# We created `geo_polling` using WGS84, but the `geo_precincts` GeoDataFrame uses [EPSG:32619](http://epsg.io/32619), Universal Transverse Mercator Zone 19N. UTM 19N is a good choice for measurement and mapping, so we will project the polling places to this CRS. Note that we can use the `crs` attribute of one GeoDataFrame as the input argument for the `to_crs` call on the other GeoDataFrame, which will guarantee that they both end up in the same CRS.
+
+# In[33]:
+
+
+geo_polling = geo_polling.to_crs(geo_precincts.crs)
+print(geo_polling.crs == geo_precincts.crs)
+
+
+# Now we are ready to do the spatial join. The GeoPandas method is [`geopandas.sjoin`](http://geopandas.org/reference/geopandas.sjoin.html#geopandas.sjoin). We will use `geo_polling` as the left GeoDataFrame, and add attributes from `geo_precincts`.
+
+# In[34]:
+
+
+geo_polling = gpd.sjoin(geo_polling, geo_precincts)
+geo_polling.head()
+
+
+# Note that `sjoin` has two useful parameters. `how` works as it does for `pandas.merge`, and defaults to performing an inner join. An additional parameter, `op`, specifies which shapely spatial relationship is used to "match" the geometries. The default is `"intersection"`, which means that the geometries can share any points in common, including boundary points. View the documentation for additional spatial relationships.
+# 
+# Now that the data are joined, we can use pandas methods to ask how many polling places are in each ward (`WARD_PRECI`).
+
+# In[39]:
+
+
+geo_polling.groupby("WARD_PRECI").size()
+
+
+# The wards have population data, including population by race and Hispanic origin. If you want to take this further, try the following:
+# 
+# * Calculate the number of polling places per thousand population by ward.
+# * Create a choropleth map of this calculation.
