@@ -8,13 +8,17 @@ date: July 9, 2019
 
 # Some Definitions
 
-Repository: "Repo" for short. Collection of files for a specific project.
+Repository
+: "Repo" for short. Collection of files for a specific project.
 
-Commit: Atomic unit of work. Delta is the difference between new files and old files. Project's commit history is almost a lab notebook, so write nice descriptive commit messages.
+Commit
+: Atomic unit of work. Delta is the difference between new files and old files. Project's commit history is almost a lab notebook, so write nice descriptive commit messages.
 
-Branch: Pointer to a specific state after a commit.
+Branch
+: Pointer to a specific state after a commit.
 
-Master Branch: Pointer to latest working version of your project.
+Master Branch
+: Pointer to latest working version of your project.
 
 # Git Sample Workflow
 
